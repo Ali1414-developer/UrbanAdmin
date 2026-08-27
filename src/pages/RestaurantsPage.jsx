@@ -22,7 +22,7 @@ const empty = {
   isFeatured: false
 };
 
-const cities = ['Lahore', 'Islamabad', 'Karachi', 'Multan', 'Faisalabad', 'Rawalpindi', 'Peshawar'];
+const cities = ['Lahore', 'Islamabad', 'Karachi', 'Multan', 'Rawalpindi', 'Peshawar'];
 
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState([]);

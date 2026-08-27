@@ -34,7 +34,7 @@ export default function Login() {
 
   const handleFillDemo = () => {
     setEmail('reception@urbanbite.pk');
-    setPassword('Reception@123');
+    setPassword('reception123');
     setError('');
   };
 
@@ -179,7 +179,7 @@ export default function Login() {
             <CheckCircle size={13} color="var(--green)" /> Auto-fill Reception Credentials
           </button>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-            reception@urbanbite.pk / Reception@123
+            reception@urbanbite.pk / reception123
           </div>
         </div>
       </div>

@@ -1,31 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ===== KEYFRAME ANIMATIONS ===== */
 @keyframes slideDown {
   from {
     opacity: 0;
     transform: translateY(-6px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+  to {
+    opacity: 1;
+  }
+}
 
 @keyframes scaleUp {
   from {
     opacity: 0;
     transform: scale(0.96);
   }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 @keyframes slideLeft {
   from {
     opacity: 0;
     transform: translateX(20px);
   }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-
+}
 
 /* ===== Reception Scoped Overrides ===== */
 .reception-layout .stat-card {
@@ -74,10 +96,14 @@
   margin-bottom: 14px;
 }
 
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 /* ===== LIGHT THEME DESIGN TOKENS (NO DARK MODE) ===== */
+:root {
+  --sidebar-w: 215px;
+  --sidebar-width: 215px;
+  --header-h: 64px;
+  --header-height: 64px;
+}
+
 .reception-layout {
   --bg-primary: #F8F9FA;
   --bg-secondary: #FFFFFF;
@@ -113,7 +139,9 @@
   --sidebar-bg: #FFFFFF;
   --sidebar-border: #E5E7EB;
   --sidebar-width: 215px;
+  --sidebar-w: 215px;
   --header-height: 64px;
+  --header-h: 64px;
 
   --radius-sm: 6px;
   --radius: 10px;
@@ -129,10 +157,6 @@
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-
-
-
-
 /* ===== APP LAYOUT ===== */
 .reception-layout {
   display: flex;
@@ -142,11 +166,11 @@
   overflow: hidden;
 }
 
-.main-content {
+.reception-layout .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
-  width: calc(100vw - var(--sidebar-width));
-  max-width: calc(100vw - var(--sidebar-width));
+  margin-left: var(--sidebar-width, 215px);
+  width: calc(100vw - var(--sidebar-width, 215px));
+  max-width: calc(100vw - var(--sidebar-width, 215px));
   height: 100vh;
   max-height: 100vh;
   display: flex;
@@ -156,14 +180,23 @@
   box-sizing: border-box;
 }
 
-.page-
+.reception-layout .page-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
 /* ===== SIDEBAR ===== */
-.sidebar {
+.reception-layout .sidebar {
   position: fixed;
   top: 0;
   left: 0;
-  width: var(--sidebar-width);
+  width: var(--sidebar-width, 215px);
   height: 100vh;
   background-color: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
@@ -430,14 +463,6 @@
   z-index: 300;
   overflow: hidden;
   animation: slideDown 0.15s ease;
-}
-
-
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .header-dropdown-user {
@@ -869,7 +894,11 @@
   color: var(--text-primary);
 }
 
-.modal-
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
 
 .modal-footer {
   padding: 16px 24px;
@@ -879,21 +908,6 @@
   justify-content: flex-end;
   gap: 10px;
   background: var(--bg-primary);
-}
-
-
-
-  to {
-    opacity: 1;
-  }
-}
-
-
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 /* ===== TOAST ===== */
@@ -923,14 +937,6 @@
   animation: slideLeft 0.2s ease;
 }
 
-
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 /* ===== SPINNER & LOADING ===== */
 .spinner {
   width: 28px;
@@ -943,9 +949,6 @@
 
 .spin {
   animation: spin 0.7s linear infinite;
-}
-
-
 }
 
 .loading-overlay {
@@ -2281,21 +2284,23 @@
 @media (max-width: 1024px) {
   .reception-layout {
     --sidebar-width: 260px;
+    --sidebar-w: 260px;
     --header-height: 56px;
+    --header-h: 56px;
   }
 
-  .sidebar {
+  .reception-layout .sidebar {
     transform: translateX(-100%) !important;
     width: 270px !important;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.4) !important;
     z-index: 200 !important;
   }
 
-  .sidebar.open {
+  .reception-layout .sidebar.open {
     transform: translateX(0) !important;
   }
 
-  .sidebar-overlay {
+  .reception-layout .sidebar-overlay {
     display: block !important;
     position: fixed !important;
     inset: 0 !important;
@@ -2305,14 +2310,14 @@
     animation: fadeIn 0.2s ease;
   }
 
-  .main-content {
+  .reception-layout .main-content {
     margin-left: 0 !important;
     width: 100% !important;
     max-width: 100vw !important;
     min-width: 0 !important;
   }
 
-  .mobile-toggle-btn {
+  .reception-layout .mobile-toggle-btn {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2328,14 +2333,14 @@
     margin-right: 4px !important;
   }
 
-  .page-body {
+  .reception-layout .page-body {
     padding: 16px 14px;
     max-width: 100vw;
     box-sizing: border-box;
   }
 
-  .grid-4,
-  .grid-3 {
+  .reception-layout .grid-4,
+  .reception-layout .grid-3 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }

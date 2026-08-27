@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import {
   LayoutDashboard, ShoppingBag, Users, UtensilsCrossed,
   X, LogOut, MonitorSmartphone, Receipt,
-  FileText
+  FileText, Wallet
 } from 'lucide-react';
 
 const navItems = [
@@ -12,7 +12,8 @@ const navItems = [
   { to: '/reception/orders', icon: ShoppingBag, label: 'Orders' },
   { to: '/reception/customers', icon: Users, label: 'Customers' },
   { to: '/reception/receipts', icon: Receipt, label: 'Receipts' },
-  { to: '/reception/reports', icon: FileText, label: 'Reports' }
+  { to: '/reception/reports', icon: FileText, label: 'Reports' },
+  { to: '/reception/pay-off', icon: Wallet, label: 'My Pay & Salary' }
 ];
 
 export default function ReceptionSidebar({ isOpen, onClose }) {

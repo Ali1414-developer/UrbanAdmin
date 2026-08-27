@@ -76,6 +76,22 @@ export default function ReceptionHeader({ onToggleSidebar }) {
       </div>
 
       <div className="header-actions">
+        {/* Active Branch Badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '5px 12px',
+          background: 'rgba(37, 99, 235, 0.08)',
+          border: '1px solid rgba(37, 99, 235, 0.25)',
+          borderRadius: 'var(--radius-full, 9999px)',
+          fontSize: 12,
+          fontWeight: 700,
+          color: '#2563EB'
+        }}>
+          <span>📍 {receptionUser?.city || 'Branch'} • {receptionUser?.branchName || 'Front Desk'}</span>
+        </div>
+
         <NotificationDropdown />
 
         <div style={{ height: 24, width: 1, background: 'var(--border)' }} />
@@ -94,7 +110,7 @@ export default function ReceptionHeader({ onToggleSidebar }) {
             </div>
             <div className="header-account-info">
               <span className="header-account-name">{receptionUser?.name || 'Reception Staff'}</span>
-              <span className="header-account-role">Front Desk Staff</span>
+              <span className="header-account-role">{receptionUser?.city || 'Branch'} Receptionist</span>
             </div>
             <ChevronDown
               size={14}

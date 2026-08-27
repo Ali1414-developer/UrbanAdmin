@@ -372,7 +372,14 @@ export default function OrdersPage() {
         });
 
         socket.on('order:created', (newOrder) => {
-          showToast(`New Order #${newOrder.orderNumber} placed!`);
+          const currentStaff = JSON.parse(localStorage.getItem('staffUser') || '{}');
+          if (currentStaff?.branchSlug && currentStaff.branchSlug !== 'all') {
+            const orderBranch = newOrder.restaurant?.id || newOrder.restaurant?.slug || '';
+            const orderCity = newOrder.customer?.city || newOrder.restaurant?.city || '';
+            const matches = orderBranch === currentStaff.branchSlug || (currentStaff.city && orderCity.toLowerCase() === currentStaff.city.toLowerCase());
+            if (!matches) return;
+          }
+          showToast(`New Order #${newOrder.orderNumber} received for ${newOrder.restaurant?.name || 'your branch'}!`);
           setOrders((prev) => [newOrder, ...prev]);
           setTotal((prev) => prev + 1);
         });

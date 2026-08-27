@@ -388,6 +388,17 @@ export default function ProfilePage() {
               </span>
             </span>
           </div>
+          <div className="profile-info-row" style={{ borderBottom: 'none' }}>
+            <span className="profile-info-label">Monthly Package & Pay</span>
+            <span className="profile-info-value" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: 14 }}>
+                Rs. {(Number(profile?.payroll?.netPay) || (Number(profile?.payroll?.baseSalary || 0) + Number(profile?.payroll?.allowance || 0))).toLocaleString()}
+              </span>
+              <span className={`badge ${profile?.payroll?.payStatus === 'Paid' ? 'badge-green' : 'badge-yellow'}`}>
+                {profile?.payroll?.payStatus || 'Pending'}
+              </span>
+            </span>
+          </div>
         </div>
 
         {/* ── Stacked Section 2: Security ── */}

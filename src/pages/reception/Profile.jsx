@@ -200,6 +200,17 @@ export default function Profile() {
             <span className="profile-info-label">Account Created</span>
             <span className="profile-info-value">{formatDate(profile?.createdAt)}</span>
           </div>
+          <div className="profile-info-row" style={{ borderBottom: 'none' }}>
+            <span className="profile-info-label">Monthly Compensation</span>
+            <span className="profile-info-value" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 800, color: 'var(--accent)' }}>
+                Rs. {(Number(profile?.payroll?.netPay) || (Number(profile?.payroll?.baseSalary || 0) + Number(profile?.payroll?.allowance || 0))).toLocaleString()}
+              </span>
+              <a href="/reception/pay-off" className="btn btn-secondary btn-sm" style={{ padding: '3px 8px', fontSize: 11 }}>
+                View Payslips →
+              </a>
+            </span>
+          </div>
         </div>
 
         {/* ── Stacked Section 2: Security & Permissions ── */}

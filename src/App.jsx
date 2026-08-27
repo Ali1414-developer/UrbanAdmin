@@ -31,6 +31,7 @@ import ReceptionCustomerDetails from './pages/reception/CustomerDetails';
 import ReceptionReceipts from './pages/reception/Receipts';
 import ReceptionReports from './pages/reception/Reports';
 import ReceptionProfile from './pages/reception/Profile';
+import ReceptionPayOff from './pages/reception/PayOff';
 
 function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, loading, role, isAdmin, isReceptionist } = useAuth();
@@ -118,6 +119,8 @@ function AppRoutes() {
         <Route path="customers/:customerId" element={<ReceptionCustomerDetails />} />
         <Route path="receipts" element={<ReceptionReceipts />} />
         <Route path="reports" element={<ReceptionReports />} />
+        <Route path="pay-off" element={<ReceptionPayOff />} />
+        <Route path="payroll" element={<ReceptionPayOff />} />
         <Route path="profile" element={<ReceptionProfile />} />
       </Route>
 

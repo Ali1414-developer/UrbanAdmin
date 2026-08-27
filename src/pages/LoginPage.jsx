@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UtensilsCrossed, Mail, Lock, Eye, EyeOff, ShieldCheck, MonitorSmartphone } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Eye, EyeOff, ShieldCheck, MapPin, Building2, MonitorSmartphone } from 'lucide-react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('admin'); // 'admin' | 'reception'
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -31,9 +32,81 @@ export default function LoginPage() {
     }
   };
 
+  const branchAdminLogins = [
+    {
+      title: 'Super Admin',
+      email: 'admin@urbanbite.pk',
+      pass: 'admin123',
+      badge: 'All Cities',
+      color: '#E53935',
+      icon: ShieldCheck
+    },
+    {
+      title: 'Lahore Admin',
+      email: 'admin.lahore@urbanbite.pk',
+      pass: 'admin123',
+      badge: 'Lahore',
+      color: '#2563EB',
+      icon: MapPin
+    },
+    {
+      title: 'Islamabad Admin',
+      email: 'admin.islamabad@urbanbite.pk',
+      pass: 'admin123',
+      badge: 'Islamabad',
+      color: '#059669',
+      icon: MapPin
+    },
+    {
+      title: 'Multan Admin',
+      email: 'admin.multan@urbanbite.pk',
+      pass: 'admin123',
+      badge: 'Multan',
+      color: '#D97706',
+      icon: MapPin
+    }
+  ];
+
+  const branchReceptionLogins = [
+    {
+      title: 'Lahore Reception',
+      email: 'reception.lahore@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Lahore Rec.',
+      color: '#2563EB',
+      icon: MonitorSmartphone
+    },
+    {
+      title: 'Islamabad Reception',
+      email: 'reception.islamabad@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Islamabad Rec.',
+      color: '#059669',
+      icon: MonitorSmartphone
+    },
+    {
+      title: 'Multan Reception',
+      email: 'reception.multan@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Multan Rec.',
+      color: '#D97706',
+      icon: MonitorSmartphone
+    },
+    {
+      title: 'General Reception',
+      email: 'reception@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Default Rec.',
+      color: '#7C3AED',
+      icon: MonitorSmartphone
+    }
+  ];
+
+  const currentList = activeTab === 'admin' ? branchAdminLogins : branchReceptionLogins;
+
   return (
     <div className="login-page">
-      <div className="login-card fade-in">
+      <div className="login-card fade-in" style={{ maxWidth: 460 }}>
         <div className="login-logo">
           <div className="login-logo-icon">
             <UtensilsCrossed size={24} color="white" />
@@ -45,7 +118,7 @@ export default function LoginPage() {
         </div>
 
         <h2 className="login-title">Welcome back</h2>
-        <p className="login-subtitle">Sign in to manage restaurant operations</p>
+        <p className="login-subtitle">Sign in with your branch admin or reception account</p>
 
         {error && <div className="login-error">{error}</div>}
 
@@ -66,7 +139,7 @@ export default function LoginPage() {
               />
             </div>
           </div>
-          <div className="form-group" style={{ marginBottom: 24 }}>
+          <div className="form-group" style={{ marginBottom: 20 }}>
             <label className="form-label">Password</label>
             <div style={{ position: 'relative' }}>
               <Lock size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -94,54 +167,86 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Fast Logins */}
-        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div
-            onClick={() => setForm({ email: 'admin@urbanbite.pk', password: 'admin123' })}
-            style={{
-              padding: '10px 14px',
-              background: 'var(--bg-hover)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 12,
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              border: '1px dashed var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.2s ease'
-            }}
-            title="Click to fill Admin credentials"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={16} style={{ color: 'var(--accent)' }} />
-              <span><strong style={{ color: 'var(--text-primary)' }}>Admin:</strong> <code>admin@urbanbite.pk</code></span>
+        {/* 1-Click Fast Branch Login Quick Fill */}
+        <div style={{ marginTop: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Building2 size={13} /> Auto-Fill Accounts:
+            </span>
+
+            {/* Admin vs Reception Toggle Tabs */}
+            <div style={{ display: 'inline-flex', background: 'var(--bg-hover)', padding: 2, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  borderRadius: 4,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'admin' ? 'var(--accent, #E53935)' : 'transparent',
+                  color: activeTab === 'admin' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Admins
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('reception')}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  borderRadius: 4,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'reception' ? '#2563EB' : 'transparent',
+                  color: activeTab === 'reception' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Receptionists
+              </button>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>Fill Admin</span>
           </div>
 
-          <div
-            onClick={() => setForm({ email: 'reception@urbanbite.pk', password: 'reception123' })}
-            style={{
-              padding: '10px 14px',
-              background: 'var(--bg-hover)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 12,
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              border: '1px dashed var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.2s ease'
-            }}
-            title="Click to fill Receptionist credentials"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MonitorSmartphone size={16} style={{ color: '#2563EB' }} />
-              <span><strong style={{ color: 'var(--text-primary)' }}>Reception:</strong> <code>reception@urbanbite.pk</code></span>
-            </div>
-            <span style={{ fontSize: 11, color: '#2563EB', fontWeight: 600 }}>Fill Reception</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {currentList.map((b) => {
+              const Icon = b.icon;
+              return (
+                <div
+                  key={b.email}
+                  onClick={() => setForm({ email: b.email, password: b.pass })}
+                  style={{
+                    padding: '8px 10px',
+                    background: 'var(--bg-hover)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 11,
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}
+                  title={`Click to fill ${b.title}`}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 700, color: b.color, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Icon size={12} /> {b.badge}
+                    </span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Auto-fill</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {b.email}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

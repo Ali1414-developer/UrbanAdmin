@@ -3,12 +3,15 @@ import {
   Search, ShieldCheck, Store, UserCheck, UserX,
   Calendar, Phone, Mail, Plus, Pencil, Trash2,
   Lock, Eye, EyeOff, Building, RefreshCw, AlertCircle,
-  CheckCircle2, Users, KeyRound, Shield
+  CheckCircle2, Users, KeyRound, Shield, Wallet, DollarSign,
+  CreditCard, Clock, Printer, Receipt, ArrowUpRight, ArrowDownRight, X
 } from 'lucide-react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { showToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
+
+const formatRs = (n) => `Rs. ${(n || 0).toLocaleString('en-PK')}`;
 
 const roleBadges = {
   admin: { label: 'Administrator', class: 'badge-purple', icon: ShieldCheck },
@@ -22,7 +25,14 @@ const defaultForm = {
   password: '',
   role: 'receptionist',
   branchId: 'Main Branch',
-  isActive: true
+  city: 'Lahore',
+  isActive: true,
+  baseSalary: 50000,
+  allowance: 5000,
+  bonus: 0,
+  deductions: 0,
+  bankName: 'Meezan Bank Ltd',
+  accountNumber: 'PK36MEZN000123456789'
 };
 
 export default function StaffManagementPage() {
@@ -33,12 +43,27 @@ export default function StaffManagementPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Modal states
+  // Add / Edit Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [formData, setFormData] = useState(defaultForm);
   const [formLoading, setFormLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+
+  // Pay-Off & Salary Management Modal
+  const [payrollModalStaff, setPayrollModalStaff] = useState(null);
+  const [payFormData, setPayFormData] = useState({
+    baseSalary: 50000,
+    allowance: 5000,
+    bonus: 0,
+    deductions: 0,
+    month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+    bankName: 'Meezan Bank Ltd',
+    accountNumber: 'PK36MEZN000123456789',
+    paymentMethod: 'Bank Transfer',
+    transactionRef: ''
+  });
+  const [payLoading, setPayLoading] = useState(false);
 
   // Delete modal
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -77,24 +102,58 @@ export default function StaffManagementPage() {
 
   const handleOpenAdd = (presetRole = 'receptionist') => {
     setEditingStaff(null);
-    setFormData({ ...defaultForm, role: presetRole });
+    setFormData({
+      ...defaultForm,
+      role: presetRole,
+      baseSalary: presetRole === 'admin' ? 85000 : 50000,
+      allowance: presetRole === 'admin' ? 10000 : 5000
+    });
     setShowPass(false);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (staff) => {
     setEditingStaff(staff);
+    const p = staff.payroll || {};
     setFormData({
       name: staff.name || '',
       email: staff.email || '',
       phone: staff.phone || '',
       password: '',
       role: staff.role === 'reception' ? 'receptionist' : (staff.role || 'receptionist'),
-      branchId: staff.branchId || 'Main Branch',
-      isActive: staff.isActive !== false
+      branchId: staff.branchId || staff.branchName || 'Main Branch',
+      city: staff.city || 'Lahore',
+      isActive: staff.isActive !== false,
+      baseSalary: p.baseSalary ?? (staff.role === 'admin' ? 85000 : 50000),
+      allowance: p.allowance ?? 5000,
+      bonus: p.bonus ?? 0,
+      deductions: p.deductions ?? 0,
+      bankName: p.bankName || 'Meezan Bank Ltd',
+      accountNumber: p.accountNumber || 'PK36MEZN000123456789'
     });
     setShowPass(false);
     setIsModalOpen(true);
+  };
+
+  const handleOpenPayModal = (staff) => {
+    setPayrollModalStaff(staff);
+    const p = staff.payroll || {};
+    const baseSalary = Number(p.baseSalary) || (staff.role === 'admin' ? 85000 : 50000);
+    const allowance = Number(p.allowance) || 5000;
+    const bonus = Number(p.bonus) || 0;
+    const deductions = Number(p.deductions) || 0;
+
+    setPayFormData({
+      baseSalary,
+      allowance,
+      bonus,
+      deductions,
+      month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      bankName: p.bankName || 'Meezan Bank Ltd',
+      accountNumber: p.accountNumber || 'PK36MEZN000123456789',
+      paymentMethod: p.paymentMethod || 'Bank Transfer',
+      transactionRef: `UB-PAY-${Date.now().toString().slice(-6)}`
+    });
   };
 
   const handleFormSubmit = async (e) => {
@@ -110,20 +169,39 @@ export default function StaffManagementPage() {
 
     setFormLoading(true);
     try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone?.trim() || '',
+        role: formData.role,
+        branchId: formData.branchId,
+        city: formData.city,
+        isActive: formData.isActive,
+        payroll: {
+          baseSalary: Number(formData.baseSalary) || 50000,
+          allowance: Number(formData.allowance) || 5000,
+          bonus: Number(formData.bonus) || 0,
+          deductions: Number(formData.deductions) || 0,
+          bankName: formData.bankName,
+          accountNumber: formData.accountNumber
+        }
+      };
+
+      if (formData.password && formData.password.trim()) {
+        payload.password = formData.password.trim();
+      }
+
       if (editingStaff) {
-        // Edit existing staff member or admin own profile
-        const { data } = await api.put(`/admin/users/${editingStaff._id}`, formData);
+        const { data } = await api.put(`/admin/users/${editingStaff._id}`, payload);
         showToast(`Staff member "${data.data?.name || 'User'}" updated successfully!`, 'success');
-        
-        // If current admin edited their own profile, sync local state
+
         if (currentStaff && (currentStaff._id === editingStaff._id || currentStaff.id === editingStaff._id)) {
           if (updateAdmin) {
             updateAdmin({ name: formData.name, email: formData.email, phone: formData.phone });
           }
         }
       } else {
-        // Add new staff member (receptionist or admin)
-        const { data } = await api.post('/admin/users', formData);
+        const { data } = await api.post('/admin/users', payload);
         showToast(`New ${data.data?.role === 'admin' ? 'Administrator' : 'Receptionist'} created successfully!`, 'success');
       }
       setIsModalOpen(false);
@@ -133,6 +211,41 @@ export default function StaffManagementPage() {
       showToast(msg, 'error');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  // Disburse / Record Monthly Pay
+  const handleDisbursePay = async () => {
+    if (!payrollModalStaff) return;
+    setPayLoading(true);
+    try {
+      // 1. Update general payroll config (base, allowance, bank)
+      await api.put(`/admin/users/${payrollModalStaff._id}`, {
+        payroll: {
+          baseSalary: Number(payFormData.baseSalary) || 50000,
+          allowance: Number(payFormData.allowance) || 5000,
+          bankName: payFormData.bankName,
+          accountNumber: payFormData.accountNumber,
+          paymentMethod: payFormData.paymentMethod
+        }
+      });
+
+      // 2. Record Pay-off for this month
+      const { data } = await api.post(`/admin/users/${payrollModalStaff._id}/pay-off`, {
+        month: payFormData.month,
+        bonus: Number(payFormData.bonus) || 0,
+        deductions: Number(payFormData.deductions) || 0,
+        transactionRef: payFormData.transactionRef,
+        paymentMethod: payFormData.paymentMethod
+      });
+
+      showToast(`Monthly pay-off of ${formatRs(data.record?.netPay)} disbursed for ${payrollModalStaff.name}!`, 'success');
+      setPayrollModalStaff(null);
+      fetchStaff();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to record pay-off', 'error');
+    } finally {
+      setPayLoading(false);
     }
   };
 
@@ -166,22 +279,39 @@ export default function StaffManagementPage() {
     }
   };
 
-  // Staff summary calculations
+  // Staff summary calculations & Payroll metrics
   const totalStaff = staffList.length;
   const totalReceptionists = staffList.filter(s => s.role === 'receptionist' || s.role === 'reception').length;
   const totalAdmins = staffList.filter(s => s.role === 'admin').length;
   const totalActive = staffList.filter(s => s.isActive !== false).length;
+
+  const totalPayrollBudget = staffList
+    .filter(s => s.isActive !== false)
+    .reduce((sum, s) => sum + (Number(s.payroll?.netPay) || (Number(s.payroll?.baseSalary || 0) + Number(s.payroll?.allowance || 0))), 0);
+
+  const totalPaidCount = staffList.filter(s => s.payroll?.payStatus === 'Paid').length;
+  const totalPendingCount = staffList.filter(s => s.payroll?.payStatus !== 'Paid').length;
+
+  // Computed net pay for the modal preview
+  const modalNetPay = Math.max(
+    0,
+    (Number(payFormData.baseSalary) || 0) +
+    (Number(payFormData.allowance) || 0) +
+    (Number(payFormData.bonus) || 0) -
+    (Number(payFormData.deductions) || 0)
+  );
 
   return (
     <div className="fade-in space-y-6">
       {/* Top Header with Add Receptionist & Add Admin Buttons */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Staff & Receptionist Management
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Users size={24} color="var(--accent)" />
+            Staff & Payroll Management
           </h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            Register new receptionists, manage staff credentials, update administrator profiles, and assign branches.
+            Manage staff credentials, salary packages, monthly disbursements, and branch role assignments.
           </p>
         </div>
 
@@ -208,8 +338,9 @@ export default function StaffManagementPage() {
         </div>
       </div>
 
-      {/* KPI Cards Header */}
+      {/* KPI Cards Header with Payroll Budget */}
       <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 20 }}>
+        {/* Total Staff */}
         <div className="stat-card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div className="stat-icon" style={{ background: 'var(--accent-soft)', width: 38, height: 38, margin: 0 }}>
@@ -220,46 +351,49 @@ export default function StaffManagementPage() {
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
             {totalStaff}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Authorized portal accounts</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{totalActive} Active on duty</div>
         </div>
 
+        {/* Total Monthly Payroll */}
+        <div className="stat-card" style={{ padding: '16px 20px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', width: 38, height: 38, margin: 0 }}>
+              <Wallet size={18} color="#10B981" />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>MONTHLY PAYROLL</span>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#10B981' }}>
+            {formatRs(totalPayrollBudget)}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Total active salaries</div>
+        </div>
+
+        {/* Paid Status */}
         <div className="stat-card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div className="stat-icon" style={{ background: 'var(--orange-soft)', width: 38, height: 38, margin: 0 }}>
-              <Store size={18} color="var(--orange)" />
+            <div className="stat-icon" style={{ background: 'var(--green-soft)', width: 38, height: 38, margin: 0 }}>
+              <CheckCircle2 size={18} color="var(--green)" />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)' }}>RECEPTIONISTS</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>PAY-OFF STATUS</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
-            {totalReceptionists}
+          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>
+            {totalPaidCount} / {totalStaff}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Front desk staff</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Paid this month</div>
         </div>
 
+        {/* Admins & Receptionists Count */}
         <div className="stat-card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div className="stat-icon" style={{ background: 'var(--purple-soft)', width: 38, height: 38, margin: 0 }}>
               <ShieldCheck size={18} color="var(--purple)" />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)' }}>ADMINS</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)' }}>ROLES RATIO</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
-            {totalAdmins}
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
+            {totalAdmins} Adm • {totalReceptionists} Rec
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Management access</div>
-        </div>
-
-        <div className="stat-card" style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div className="stat-icon" style={{ background: 'var(--green-soft)', width: 38, height: 38, margin: 0 }}>
-              <UserCheck size={18} color="var(--green)" />
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>ACTIVE STAFF</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>
-            {totalActive}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Can login & operate</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Across all branches</div>
         </div>
       </div>
 
@@ -324,10 +458,11 @@ export default function StaffManagementPage() {
                 <tr>
                   <th>Staff Member</th>
                   <th>Role & Access</th>
-                  <th>Assigned Branch</th>
-                  <th>Contact Information</th>
-                  <th>Account Status</th>
-                  <th>Created Date</th>
+                  <th>Branch Assignment</th>
+                  <th>Monthly Package</th>
+                  <th>Current Net Pay</th>
+                  <th>Pay-Off Status</th>
+                  <th>Status</th>
                   <th style={{ textAlign: 'right', paddingRight: 20 }}>Actions</th>
                 </tr>
               </thead>
@@ -340,6 +475,12 @@ export default function StaffManagementPage() {
                   const initials = staff.name
                     ? staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                     : 'ST';
+
+                  const p = staff.payroll || {};
+                  const baseSalary = Number(p.baseSalary) || 0;
+                  const allowance = Number(p.allowance) || 0;
+                  const netPay = p.netPay !== undefined ? Number(p.netPay) : (baseSalary + allowance);
+                  const isPaid = p.payStatus === 'Paid';
 
                   return (
                     <tr key={staff._id} style={{ background: isSelf ? 'rgba(229, 57, 53, 0.02)' : 'transparent' }}>
@@ -391,19 +532,42 @@ export default function StaffManagementPage() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                           <Building size={13} color="var(--text-muted)" />
-                          <span>{staff.branchId || staff.city || 'Main Branch'}</span>
+                          <span>{staff.branchName || staff.branchId || staff.city || 'Main Branch'}</span>
                         </div>
                       </td>
 
-                      {/* Contact Info */}
+                      {/* Monthly Salary Package (Base + Allowance) */}
                       <td>
-                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <Phone size={12} color="var(--text-muted)" />
-                          <span>{staff.phone || '—'}</span>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {formatRs(baseSalary)}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          + {formatRs(allowance)} allowance
                         </div>
                       </td>
 
-                      {/* Status Toggle Button */}
+                      {/* Current Month Net Pay */}
+                      <td>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent)' }}>
+                          {formatRs(netPay)}
+                        </div>
+                        {(p.bonus > 0 || p.deductions > 0) && (
+                          <div style={{ fontSize: 10, color: p.bonus > 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                            {p.bonus > 0 && `+${formatRs(p.bonus)} bon. `}
+                            {p.deductions > 0 && `-${formatRs(p.deductions)} ded.`}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Pay-Off Status */}
+                      <td>
+                        <span className={`badge ${isPaid ? 'badge-green' : 'badge-yellow'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700 }}>
+                          {isPaid ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                          <span>{isPaid ? 'Paid' : 'Pending'}</span>
+                        </span>
+                      </td>
+
+                      {/* Account Active Status */}
                       <td>
                         <button
                           type="button"
@@ -427,39 +591,30 @@ export default function StaffManagementPage() {
                         </button>
                       </td>
 
-                      {/* Created Date */}
-                      <td>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Calendar size={12} />
-                          {staff.createdAt ? new Date(staff.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                        </div>
-                      </td>
-
-                      {/* Actions (Edit & Delete) */}
+                      {/* Actions */}
                       <td style={{ textAlign: 'right', paddingRight: 20 }}>
-                        <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
-                          {/* Edit Staff / Password */}
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+                          {/* Pay-Off / Salary Action Button */}
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => handleOpenPayModal(staff)}
+                            title="Manage Salary & Disburse Pay-Off"
+                          >
+                            <Wallet size={13} color="var(--accent)" />
+                            <span>Pay-Off</span>
+                          </button>
+
+                          {/* Edit Staff Profile */}
                           <button
                             type="button"
                             className="action-btn-edit"
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 8,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              background: '#F0F9FF',
-                              border: '1px solid #BAE6FD',
-                              color: '#0284C7',
-                              cursor: 'pointer',
-                              fontWeight: 600,
-                              fontSize: 12
-                            }}
+                            style={{ padding: '6px 10px', borderRadius: 6 }}
                             onClick={() => handleOpenEdit(staff)}
-                            title="Edit details & reset password"
+                            title="Edit Staff Member"
                           >
-                            <Pencil size={13} />
-                            <span>Edit / Password</span>
+                            <Pencil size={14} />
                           </button>
 
                           {/* Delete Staff */}
@@ -467,20 +622,9 @@ export default function StaffManagementPage() {
                             <button
                               type="button"
                               className="action-btn-delete"
-                              style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: 8,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: '#FEF2F2',
-                                border: '1px solid #FECACA',
-                                color: '#DC2626',
-                                cursor: 'pointer'
-                              }}
+                              style={{ padding: '6px 10px', borderRadius: 6 }}
                               onClick={() => setDeleteTarget(staff)}
-                              title="Delete staff account"
+                              title="Remove Staff Member"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -490,93 +634,121 @@ export default function StaffManagementPage() {
                     </tr>
                   );
                 })}
-
-                {staffList.length === 0 && (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty-state" style={{ padding: '48px 16px', textAlign: 'center' }}>
-                        <Store size={40} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>No staff members found</h3>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto 16px' }}>
-                          No receptionists or administrators match your filter. Register staff members to manage portal operations.
-                        </p>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleOpenAdd('receptionist')}
-                        >
-                          + Add Receptionist Now
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* Add / Edit Staff Modal */}
+      {/* ── Add / Edit Staff Modal ── */}
       {isModalOpen && (
         <Modal
-          title={
-            editingStaff
-              ? `Edit Staff — ${editingStaff.name} (${editingStaff.role === 'admin' ? 'Administrator' : 'Receptionist'})`
-              : `Register New ${formData.role === 'admin' ? 'Administrator' : 'Receptionist'}`
-          }
+          title={editingStaff ? `Edit Staff: ${editingStaff.name}` : `Add New ${formData.role === 'admin' ? 'Administrator' : 'Receptionist'}`}
           onClose={() => setIsModalOpen(false)}
         >
           <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Name */}
             <div className="form-group">
               <label className="form-label">Full Name *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="e.g. Ayesha Tariq"
+                placeholder="e.g. Tariq Mehmood"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
 
-            {/* Email */}
-            <div className="form-group">
-              <label className="form-label">Email Address (Login Username) *</label>
-              <input
-                type="email"
-                className="form-control"
-                placeholder="e.g. reception.gulberg@urbanbite.pk"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group">
+                <label className="form-label">Email Address *</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="staff@urbanbite.pk"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="+92 300 1234567"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
             </div>
 
-            {/* Phone */}
-            <div className="form-group">
-              <label className="form-label">Contact Phone Number</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="e.g. +92 300 1234567"
-                value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group">
+                <label className="form-label">Role & Access</label>
+                <select
+                  className="form-control"
+                  value={formData.role}
+                  onChange={e => setFormData({ ...formData, role: e.target.value })}
+                >
+                  <option value="receptionist">Receptionist (Front Desk / POS)</option>
+                  <option value="admin">Administrator (Management)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Branch City</label>
+                <select
+                  className="form-control"
+                  value={formData.city}
+                  onChange={e => setFormData({ ...formData, city: e.target.value })}
+                >
+                  <option value="Lahore">Lahore (Gulberg Branch)</option>
+                  <option value="Islamabad">Islamabad (F-7 Markaz Branch)</option>
+                  <option value="Multan">Multan (Cantt Branch)</option>
+                  <option value="All">All Branches (Super Admin)</option>
+                </select>
+              </div>
             </div>
 
-            {/* Password with Eye Toggle */}
+            {/* Salary Package Settings */}
+            <div style={{ background: 'var(--bg-hover)', padding: 14, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Wallet size={14} color="var(--accent)" /> Salary Package Configuration (PKR)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: 11 }}>Base Salary (Monthly)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={formData.baseSalary}
+                    onChange={e => setFormData({ ...formData, baseSalary: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: 11 }}>Monthly Allowance</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={formData.allowance}
+                    onChange={e => setFormData({ ...formData, allowance: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Password */}
             <div className="form-group">
               <label className="form-label">
-                {editingStaff ? 'New Password (Leave blank to keep current password)' : 'Account Password *'}
+                {editingStaff ? 'Reset Password (leave empty to keep existing)' : 'Login Password *'}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPass ? 'text' : 'password'}
                   className="form-control"
-                  style={{ paddingRight: 40 }}
-                  placeholder={editingStaff ? '••••••••' : 'Minimum 6 characters'}
+                  placeholder={editingStaff ? 'Enter new password...' : 'Minimum 6 characters'}
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required={!editingStaff}
@@ -594,102 +766,155 @@ export default function StaffManagementPage() {
                     color: 'var(--text-muted)',
                     cursor: 'pointer'
                   }}
-                  aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Role & Branch */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="form-group">
-                <label className="form-label">Role & Access Type</label>
-                <select
-                  className="form-control"
-                  value={formData.role}
-                  onChange={e => setFormData({ ...formData, role: e.target.value })}
-                >
-                  <option value="receptionist">Receptionist (Front Desk Portal)</option>
-                  <option value="admin">Administrator (Full Admin Access)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Assigned Branch / Location</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Main Branch, Gulberg, DHA"
-                  value={formData.branchId}
-                  onChange={e => setFormData({ ...formData, branchId: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Active Status Toggle */}
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-              <input
-                type="checkbox"
-                id="staff-active-check"
-                checked={formData.isActive}
-                onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
-                style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
-              />
-              <label htmlFor="staff-active-check" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
-                Active Account (Staff member can log in and process orders)
-              </label>
-            </div>
-
-            {/* Submit & Cancel Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setIsModalOpen(false)}
-                disabled={formLoading}
-              >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={formLoading}
-                style={{ minWidth: 130 }}
-              >
-                {formLoading ? 'Saving...' : (editingStaff ? 'Save Changes' : 'Create Staff Member')}
+              <button type="submit" className="btn btn-primary" disabled={formLoading}>
+                {formLoading ? 'Saving...' : editingStaff ? 'Save Changes' : 'Create Staff Member'}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* Delete Staff Confirmation Modal */}
-      {deleteTarget && (
-        <Modal title="Confirm Account Deletion" onClose={() => setDeleteTarget(null)}>
-          <div style={{ textAlign: 'center', padding: '12px 0' }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: '50%',
-                background: '#FEE2E2',
-                color: '#DC2626',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px'
-              }}
-            >
-              <Trash2 size={26} />
+      {/* ── Pay-Off & Salary Modal ── */}
+      {payrollModalStaff && (
+        <Modal
+          title={`Monthly Pay-Off & Salary: ${payrollModalStaff.name}`}
+          onClose={() => setPayrollModalStaff(null)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header info badge */}
+            <div style={{ background: 'var(--bg-hover)', padding: 12, borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>{payrollModalStaff.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {payrollModalStaff.branchName || payrollModalStaff.city} • {payrollModalStaff.role}
+                </div>
+              </div>
+              <span className={`badge ${payrollModalStaff.payroll?.payStatus === 'Paid' ? 'badge-green' : 'badge-yellow'}`}>
+                Current: {payrollModalStaff.payroll?.payStatus || 'Paid'}
+              </span>
             </div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-              Delete {deleteTarget.name}?
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 360, margin: '0 auto 20px', lineHeight: 1.5 }}>
-              Are you sure you want to permanently delete this <strong>{deleteTarget.role}</strong> account (<code>{deleteTarget.email}</code>)? They will no longer be able to log in.
-            </p>
 
+            {/* Compensation Inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Base Salary (PKR)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={payFormData.baseSalary}
+                  onChange={e => setPayFormData({ ...payFormData, baseSalary: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Allowance (PKR)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={payFormData.allowance}
+                  onChange={e => setPayFormData({ ...payFormData, allowance: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Bonus / Incentive (PKR)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={payFormData.bonus}
+                  onChange={e => setPayFormData({ ...payFormData, bonus: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Deductions (Tax/Advance PKR)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={payFormData.deductions}
+                  onChange={e => setPayFormData({ ...payFormData, deductions: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Net Payout preview card */}
+            <div style={{ background: 'rgba(229, 57, 53, 0.05)', border: '1px solid rgba(229, 57, 53, 0.2)', padding: 14, borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Net Take-Home Pay</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--accent)' }}>{formatRs(modalNetPay)}</div>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)' }}>
+                <span>Period: <strong>{payFormData.month}</strong></span>
+              </div>
+            </div>
+
+            {/* Bank Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Bank Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={payFormData.bankName}
+                  onChange={e => setPayFormData({ ...payFormData, bankName: e.target.value })}
+                />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">IBAN / Account Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={payFormData.accountNumber}
+                  onChange={e => setPayFormData({ ...payFormData, accountNumber: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setPayrollModalStaff(null)}>
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleDisbursePay}
+                disabled={payLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800 }}
+              >
+                <CheckCircle2 size={16} />
+                <span>{payLoading ? 'Disbursing...' : `Mark as Paid (${formatRs(modalNetPay)})`}</span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {deleteTarget && (
+        <Modal
+          title="Confirm Staff Removal"
+          onClose={() => setDeleteTarget(null)}
+        >
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <AlertCircle size={48} color="var(--red)" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>
+              Remove "{deleteTarget.name}"?
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 360, margin: '0 auto 24px' }}>
+              This staff member will no longer be able to log in to the UrbanBite admin or reception portals.
+            </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
               <button
                 type="button"
@@ -701,12 +926,11 @@ export default function StaffManagementPage() {
               </button>
               <button
                 type="button"
-                className="btn"
-                style={{ background: '#DC2626', color: '#FFFFFF', fontWeight: 700 }}
+                className="btn btn-danger"
                 onClick={handleDeleteStaff}
                 disabled={deleteLoading}
               >
-                {deleteLoading ? 'Deleting...' : 'Yes, Delete Account'}
+                {deleteLoading ? 'Removing...' : 'Yes, Remove Staff'}
               </button>
             </div>
           </div>

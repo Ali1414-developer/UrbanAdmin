@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { UtensilsCrossed, Lock, Mail, AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { UtensilsCrossed, Lock, Mail, AlertCircle, Eye, EyeOff, MapPin, Building2 } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,11 +32,29 @@ export default function Login() {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail('reception@urbanbite.pk');
-    setPassword('reception123');
-    setError('');
-  };
+  const branchReceptionLogins = [
+    {
+      title: 'Lahore Front Desk (Gulberg)',
+      email: 'reception.lahore@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Lahore Reception',
+      color: '#2563EB'
+    },
+    {
+      title: 'Islamabad Front Desk (F-7)',
+      email: 'reception.islamabad@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Islamabad Reception',
+      color: '#059669'
+    },
+    {
+      title: 'Multan Front Desk (Cantt)',
+      email: 'reception.multan@urbanbite.pk',
+      pass: 'reception123',
+      badge: 'Multan Reception',
+      color: '#D97706'
+    }
+  ];
 
   return (
     <div style={{
@@ -49,7 +67,7 @@ export default function Login() {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: 420,
+        maxWidth: 440,
         background: 'var(--bg-card)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border)',
@@ -163,23 +181,40 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Quick fill card for testing */}
-        <div style={{
-          marginTop: 24,
-          paddingTop: 20,
-          borderTop: '1px solid var(--border)',
-          textAlign: 'center'
-        }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            style={{ width: '100%', fontSize: 12 }}
-            onClick={handleFillDemo}
-          >
-            <CheckCircle size={13} color="var(--green)" /> Auto-fill Reception Credentials
-          </button>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-            reception@urbanbite.pk / reception123
+        {/* 1-Click Fast Branch Receptionist Quick Selectors */}
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Building2 size={13} /> Select Branch Receptionist to Auto-Fill:
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {branchReceptionLogins.map((b) => (
+              <div
+                key={b.email}
+                onClick={() => { setEmail(b.email); setPassword(b.pass); setError(''); }}
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--bg-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 11,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  border: '1px solid var(--border)',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                title={`Click to fill ${b.title}`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <MapPin size={13} style={{ color: b.color }} />
+                  <span style={{ fontWeight: 700, color: b.color }}>{b.badge}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>({b.email})</span>
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 600, color: b.color }}>Fill</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

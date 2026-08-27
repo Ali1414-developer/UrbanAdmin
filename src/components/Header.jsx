@@ -80,6 +80,22 @@ export default function Header({ onToggleSidebar }) {
       </div>
 
       <div className="header-actions">
+        {/* Active Branch Badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '5px 12px',
+          background: admin?.isSuperAdmin ? 'rgba(229, 57, 53, 0.08)' : 'rgba(37, 99, 235, 0.08)',
+          border: `1px solid ${admin?.isSuperAdmin ? 'rgba(229, 57, 53, 0.25)' : 'rgba(37, 99, 235, 0.25)'}`,
+          borderRadius: 'var(--radius-full, 9999px)',
+          fontSize: 12,
+          fontWeight: 700,
+          color: admin?.isSuperAdmin ? 'var(--accent, #E53935)' : '#2563EB'
+        }}>
+          <span>{admin?.isSuperAdmin ? '🌐 All Branches' : `📍 ${admin?.city || 'Branch'} • ${admin?.branchName || 'Branch Portal'}`}</span>
+        </div>
+
         <NotificationDropdown />
 
         <div style={{ height: 24, width: 1, background: 'var(--border)' }} />
@@ -98,7 +114,9 @@ export default function Header({ onToggleSidebar }) {
             </div>
             <div className="header-account-info">
               <span className="header-account-name">{admin?.name || 'Admin'}</span>
-              <span className="header-account-role">Administrator</span>
+              <span className="header-account-role">
+                {admin?.isSuperAdmin ? 'Super Admin' : `${admin?.city || 'Branch'} Admin`}
+              </span>
             </div>
             <ChevronDown
               size={14}
